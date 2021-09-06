@@ -1,0 +1,77 @@
+diff --git a/recipes-bsp/u-boot/files/unmatched/0054-setenv.patch b/recipes-bsp/u-boot/files/unmatched/0054-setenv.patch
+new file mode 100644
+index 0000000..3a3fbef
+--- /dev/null
++++ b/recipes-bsp/u-boot/files/unmatched/0054-setenv.patch
+@@ -0,0 +1,59 @@
++From 4307f5aa367806411efb4ed5301d22e3e1397757 Mon Sep 17 00:00:00 2001
++From: "v.v.mitrofanov" <v.v.mitrofanov@yadro.com>
++Date: Fri, 3 Sep 2021 15:38:30 +0300
++Subject: [PATCH] This patch set configuration to store all variables in mmc
++ disk partition 3.
++
++Change configuration to use mmc part 3 as a storage for uboot.env file.
++Enable preboot option to import all variables before command line.
++Fix unmatced configuration file to skip CONFIG_PREBOOT overwrite.
++
++Changes to be committed:
++       modified:   configs/sifive_hifive_unmatched_fu740_defconfig
++       modified:   include/configs/sifive-hifive-unmatched-fu740.h
++---
++ configs/sifive_hifive_unmatched_fu740_defconfig | 6 ++++++
++ include/configs/sifive-hifive-unmatched-fu740.h | 3 +++
++ 2 files changed, 9 insertions(+)
++
++diff --git a/configs/sifive_hifive_unmatched_fu740_defconfig b/configs/sifive_hifive_unmatched_fu740_defconfig
++index fac1d7b894..b2043bcfbe 100644
++--- a/configs/sifive_hifive_unmatched_fu740_defconfig
+++++ b/configs/sifive_hifive_unmatched_fu740_defconfig
++@@ -56,3 +56,9 @@ CONFIG_DM_PWM=y
++ CONFIG_PWM_SIFIVE=y
++ CONFIG_CMD_PWM=y
++ CONFIG_BOARD_EARLY_INIT_F=y
+++CONFIG_USE_PREBOOT=y
+++CONFIG_PREBOOT="setenv yadro hello; if fatload mmc 0:3 0x80200000 uboot.env; then env import -d 0x80200000; fi;"
+++CONFIG_SYS_MMC_ENV_PART=3
+++CONFIG_ENV_IS_IN_FAT=y
+++CONFIG_ENV_FAT_DEVICE_AND_PART="0:3"
+++
++diff --git a/include/configs/sifive-hifive-unmatched-fu740.h b/include/configs/sifive-hifive-unmatched-fu740.h
++index bf1c2689b8..0e60c783e3 100644
++--- a/include/configs/sifive-hifive-unmatched-fu740.h
+++++ b/include/configs/sifive-hifive-unmatched-fu740.h
++@@ -74,6 +74,7 @@
++	"name=system,size=-,bootable,type=${type_guid_gpt_system};"
++
++ #define CONFIG_EXTRA_ENV_SETTINGS \
+++	"preboot=if fatload mmc 0:3 0x80200000 uboot.env; then echo Loading uboot variables from uboot.env; env import -d 0x80200000; else echo There is no uboot.env to load variables; fi;\0" \
++	"fdt_high=0xffffffffffffffff\0" \
++	"initrd_high=0xffffffffffffffff\0" \
++	"kernel_addr_r=0x84000000\0" \
++@@ -94,9 +95,11 @@
++		"sysboot ${devtype} ${devnum}:${distro_bootpart} any "    			\
++			"${scriptaddr} ${prefix}${boot_syslinux_conf};\0"
++
+++/*
++ #define CONFIG_PREBOOT \
++	"setenv fdt_addr ${fdtcontroladdr};" \
++	"fdt addr ${fdtcontroladdr};"
+++	*/
++ #endif /* CONFIG_SPL_BUILD */
++
++ #endif /* __SIFIVE_HIFIVE_UNMATCHED_FU740_H */
++--
++2.25.1
++
+diff --git a/recipes-bsp/u-boot/u-boot_2021.01.bb b/recipes-bsp/u-boot/u-boot_2021.01.bb
+index a89c106..9aa4e74 100644
+--- a/recipes-bsp/u-boot/u-boot_2021.01.bb
++++ b/recipes-bsp/u-boot/u-boot_2021.01.bb
+@@ -64,6 +64,7 @@ SRC_URI_append_unmatched = " \
+     file://0051-board-sifive-Add-an-interface-to-get-PCB-revision.patch \
+     file://0052-riscv-sifive-unmatched-set-default-clock-to-1.2GHz.patch \
+     file://0053-board-sifive-spl-Set-remote-thermal-of-TMP451-to-85-.patch \
++    file://0054-setenv.patch \
+ "
+ 
+ do_compile_prepend_riscv64() {
